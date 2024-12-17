@@ -1,0 +1,29 @@
+{
+    "compilerOptions": {
+        "module": "CommonJS",
+        "declaration": true,
+        "removeComments": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
+        "target": "ES5",
+        "sourceMap": false,
+        "outDir": "./lib",
+        "incremental": true,
+        "skipLibCheck": true,
+        "strictNullChecks": false,
+        "noImplicitAny": false,
+        "strictBindCallApply": false,
+        "jsx": "react-jsx",
+        "types": ["node"],
+        "typeRoots": [
+            "node_modules/@types",
+            "typings"
+        ],
+        "moduleResolution": "node",
+        "forceConsistentCasingInFileNames": false,
+        "noFallthroughCasesInSwitch": false
+    },
+    "exclude": ["node_modules", "test", "lib", "**/*spec.ts"]
+}
