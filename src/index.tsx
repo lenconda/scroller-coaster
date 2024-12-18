@@ -5,6 +5,11 @@ import { css } from '@emotion/css';
 import { useUpdate } from 'ahooks';
 import { CSSInterpolation } from '@emotion/css/dist/declarations/src/create-instance';
 
+interface ShapeSize {
+    height: number;
+    width: number;
+}
+
 export interface ScrollerCoasterTrackProps extends React.HTMLAttributes<HTMLDivElement> {
     /**
      * @default 12
@@ -18,6 +23,16 @@ export interface ScrollerCoasterTrackProps extends React.HTMLAttributes<HTMLDivE
 }
 
 export interface ScrollerCoasterProps extends React.HTMLAttributes<HTMLDivElement> {
+    /**
+     * @description The maximum speed of scroll when dragging in container, in px/frame
+     * @default 15
+     */
+    draggingScrollMaximumSpeed?: number;
+    /**
+     * @description The maximum threshold size of scroll when dragging in container, in px
+     * @default 50
+     */
+    draggingScrollThreshold?: number;
     /**
      * @description Horizontal track props
      * @type ScrollerCoasterTrackProps | false
@@ -33,14 +48,22 @@ export interface ScrollerCoasterProps extends React.HTMLAttributes<HTMLDivElemen
 
 export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterProps>(
     (
-        { children, position = 'relative', horizontalTrackProps, verticalTrackProps, ...scrollerCoasterProps },
+        {
+            children,
+            position = 'relative',
+            horizontalTrackProps,
+            verticalTrackProps,
+            draggingScrollMaximumSpeed = 15,
+            draggingScrollThreshold = 50,
+            ...scrollerCoasterProps
+        },
         outerRef,
     ) => {
         const update = useUpdate();
         const innerRef = useRef<HTMLDivElement | null>(null);
         const scrollHeightRef = useRef<number>(0);
         const scrollWidthRef = useRef<number>(0);
-        const boundingClientRectRef = useRef<DOMRect | null>(null);
+        const shapeSizeRef = useRef<ShapeSize | null>(null);
         const scrollTopRef = useRef<number>(0);
         const scrollLeftRef = useRef<number>(0);
         const horizontalTrackRef = useRef<HTMLDivElement | null>(null);
@@ -94,8 +117,8 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                 if (
                     horizontalTrackProps === false ||
                     verticalTrackProps === false ||
-                    !(boundingClientRectRef.current?.height > 0) ||
-                    !(boundingClientRectRef.current?.width > 0) ||
+                    !(shapeSizeRef.current?.height > 0) ||
+                    !(shapeSizeRef.current?.width > 0) ||
                     !(scrollHeightRef.current > 0)
                 ) {
                     return {};
@@ -108,9 +131,7 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                               height: '100%',
                               top: 0,
                               bottom: 0,
-                              width:
-                                  (boundingClientRectRef.current.width / scrollWidthRef.current) *
-                                  boundingClientRectRef.current.width,
+                              width: (shapeSizeRef.current.width / scrollWidthRef.current) * shapeSizeRef.current.width,
                           }
                         : {}),
                     ...(variant === 'vertical'
@@ -119,8 +140,7 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                               left: 0,
                               right: 0,
                               height:
-                                  (boundingClientRectRef.current.height / scrollHeightRef.current) *
-                                  boundingClientRectRef.current.height,
+                                  (shapeSizeRef.current.height / scrollHeightRef.current) * shapeSizeRef.current.height,
                           }
                         : {}),
                 };
@@ -128,7 +148,7 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
             [
                 horizontalTrackProps,
                 verticalTrackProps,
-                boundingClientRectRef.current,
+                shapeSizeRef.current,
                 scrollHeightRef.current,
                 scrollWidthRef.current,
             ],
@@ -142,7 +162,10 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
             const resizeObserver = new ResizeObserver(() => {
                 scrollHeightRef.current = innerRef.current.scrollHeight;
                 scrollWidthRef.current = innerRef.current.scrollWidth;
-                boundingClientRectRef.current = innerRef.current.getBoundingClientRect();
+                shapeSizeRef.current = {
+                    height: innerRef.current.clientHeight,
+                    width: innerRef.current.clientWidth,
+                };
                 update();
             });
 
@@ -158,8 +181,8 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                 !(innerRef.current instanceof HTMLElement) ||
                 !(scrollHeightRef.current > 0) ||
                 !(scrollWidthRef.current > 0) ||
-                !(boundingClientRectRef.current?.height > 0) ||
-                !(boundingClientRectRef.current?.width > 0)
+                !(shapeSizeRef.current?.height > 0) ||
+                !(shapeSizeRef.current?.width > 0)
             ) {
                 return;
             }
@@ -171,11 +194,11 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                 const newScrollTop = innerRef.current.scrollTop + event.deltaY;
                 const newScrollLeft = innerRef.current.scrollLeft + event.deltaX;
 
-                if (newScrollTop <= scrollHeightRef.current - boundingClientRectRef.current.height) {
+                if (newScrollTop <= scrollHeightRef.current - shapeSizeRef.current.height) {
                     scrollTopRef.current = newScrollTop < 0 ? 0 : newScrollTop;
                 }
 
-                if (newScrollLeft <= scrollWidthRef.current - boundingClientRectRef.current.width) {
+                if (newScrollLeft <= scrollWidthRef.current - shapeSizeRef.current.width) {
                     scrollLeftRef.current = newScrollLeft < 0 ? 0 : newScrollLeft;
                 }
 
@@ -193,37 +216,37 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
             scrollLeftRef.current,
             scrollHeightRef.current,
             scrollWidthRef.current,
-            boundingClientRectRef.current,
+            shapeSizeRef.current,
         ]);
 
         useEffect(() => {
             if (
                 !(innerRef.current instanceof HTMLElement) ||
-                !(boundingClientRectRef.current?.height > 0) ||
-                !(boundingClientRectRef.current?.width > 0)
+                !(shapeSizeRef.current?.height > 0) ||
+                !(shapeSizeRef.current?.width > 0)
             ) {
                 return;
             }
 
             if (horizontalTrackRef.current instanceof HTMLElement) {
-                horizontalTrackRef.current.style.top = `${boundingClientRectRef.current.height + scrollTopRef.current - horizontalTrackRef.current.getBoundingClientRect().height}px`;
+                horizontalTrackRef.current.style.top = `${shapeSizeRef.current.height + scrollTopRef.current - horizontalTrackRef.current.clientHeight}px`;
             }
 
             if (verticalTrackRef.current instanceof HTMLElement) {
-                verticalTrackRef.current.style.left = `${boundingClientRectRef.current.width + scrollLeftRef.current - verticalTrackRef.current.getBoundingClientRect().width}px`;
+                verticalTrackRef.current.style.left = `${shapeSizeRef.current.width + scrollLeftRef.current - verticalTrackRef.current.clientWidth}px`;
             }
 
             if (verticalThumbRef.current instanceof HTMLElement) {
                 const verticalThumbTop =
                     scrollTopRef.current +
-                    (scrollTopRef.current / scrollHeightRef.current) * boundingClientRectRef.current.height;
+                    (scrollTopRef.current / scrollHeightRef.current) * shapeSizeRef.current.height;
                 verticalThumbRef.current.style.top = `${verticalThumbTop}px`;
             }
 
             if (horizontalThumbRef.current instanceof HTMLElement) {
                 const horizontalThumbLeft =
                     scrollLeftRef.current +
-                    (scrollLeftRef.current / scrollWidthRef.current) * boundingClientRectRef.current.width;
+                    (scrollLeftRef.current / scrollWidthRef.current) * shapeSizeRef.current.width;
                 horizontalThumbRef.current.style.left = `${horizontalThumbLeft}px`;
             }
 
@@ -234,9 +257,139 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
             horizontalTrackRef.current,
             verticalTrackRef.current,
             innerRef.current,
-            boundingClientRectRef.current,
+            shapeSizeRef.current,
             verticalThumbRef.current,
             horizontalThumbRef.current,
+        ]);
+
+        useEffect(() => {
+            if (!(innerRef.current instanceof HTMLElement)) return;
+
+            let scrollAnimationId: number;
+            let scrollSpeed = 0;
+            let direction: 'horizontal' | 'vertical' | null | false = false;
+
+            const mouseMoveHandler = (event: MouseEvent) => {
+                if (direction === false) return;
+
+                const containerRect = innerRef.current.getBoundingClientRect();
+                const distanceFromTop = event.clientY - containerRect.top;
+                const distanceFromBottom = containerRect.bottom - event.clientY;
+                const distanceFromLeft = event.clientX - containerRect.left;
+                const distanceFromRight = containerRect.right - event.clientX;
+
+                if (distanceFromBottom < draggingScrollThreshold || distanceFromTop < draggingScrollThreshold) {
+                    direction = 'vertical';
+                    if (distanceFromBottom < draggingScrollThreshold) {
+                        scrollSpeed = Math.min(
+                            ((draggingScrollThreshold - distanceFromBottom) / draggingScrollThreshold) *
+                                draggingScrollMaximumSpeed,
+                            draggingScrollMaximumSpeed,
+                        );
+                    } else if (distanceFromTop < draggingScrollThreshold) {
+                        scrollSpeed =
+                            0 -
+                            Math.min(
+                                ((draggingScrollThreshold - distanceFromTop) / draggingScrollThreshold) *
+                                    draggingScrollMaximumSpeed,
+                                draggingScrollMaximumSpeed,
+                            );
+                    } else {
+                        scrollSpeed = 0;
+                    }
+                } else if (distanceFromLeft < draggingScrollThreshold || distanceFromRight < draggingScrollThreshold) {
+                    direction = 'horizontal';
+                    if (distanceFromRight < draggingScrollThreshold) {
+                        scrollSpeed = Math.min(
+                            ((draggingScrollThreshold - distanceFromRight) / draggingScrollThreshold) *
+                                draggingScrollMaximumSpeed,
+                            draggingScrollMaximumSpeed,
+                        );
+                    } else if (distanceFromLeft < draggingScrollThreshold) {
+                        scrollSpeed =
+                            0 -
+                            Math.min(
+                                ((draggingScrollThreshold - distanceFromLeft) / draggingScrollThreshold) *
+                                    draggingScrollMaximumSpeed,
+                                draggingScrollMaximumSpeed,
+                            );
+                    } else {
+                        scrollSpeed = 0;
+                    }
+                }
+
+                const scrollAnimation = () => {
+                    if (
+                        innerRef.current instanceof HTMLElement &&
+                        (['vertical', 'horizontal'] as Array<typeof direction>).includes(direction)
+                    ) {
+                        switch (direction) {
+                            case 'vertical': {
+                                const newScrollTop = scrollTopRef.current + scrollSpeed;
+
+                                if (
+                                    newScrollTop >= 0 &&
+                                    newScrollTop <= scrollHeightRef.current - shapeSizeRef.current?.height
+                                ) {
+                                    scrollTopRef.current = newScrollTop;
+                                    update();
+                                }
+
+                                break;
+                            }
+                            case 'horizontal': {
+                                const newScrollLeft = scrollLeftRef.current + scrollSpeed;
+
+                                if (
+                                    newScrollLeft >= 0 &&
+                                    newScrollLeft <= scrollWidthRef.current - shapeSizeRef.current?.width
+                                ) {
+                                    scrollLeftRef.current = newScrollLeft;
+                                    update();
+                                }
+
+                                break;
+                            }
+                            default:
+                                break;
+                        }
+                    }
+                };
+
+                scrollAnimationId = requestAnimationFrame(scrollAnimation);
+            };
+
+            const mouseDownHandler = () => {
+                direction = null;
+            };
+
+            const mouseUpHandler = () => {
+                direction = false;
+                scrollSpeed = 0;
+                if (typeof scrollAnimationId === 'number') {
+                    cancelAnimationFrame(scrollAnimationId);
+                    scrollAnimationId = null;
+                }
+            };
+
+            innerRef.current.addEventListener('mousedown', mouseDownHandler, true);
+            document.addEventListener('mousemove', mouseMoveHandler, true);
+            document.addEventListener('mouseup', mouseUpHandler, true);
+
+            return () => {
+                if (scrollAnimationId) {
+                    cancelAnimationFrame(scrollAnimationId);
+                }
+                innerRef.current?.removeEventListener('mousedown', mouseDownHandler, true);
+                document.removeEventListener('mousemove', mouseMoveHandler, true);
+                document.removeEventListener('mouseup', mouseUpHandler, true);
+            };
+        }, [
+            innerRef.current,
+            draggingScrollMaximumSpeed,
+            draggingScrollThreshold,
+            scrollHeightRef.current,
+            shapeSizeRef.current,
         ]);
 
         return (
@@ -245,7 +398,7 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                 ref={innerRef}
                 className={clsx(
                     css({
-                        overflow: 'auto',
+                        overflow: 'hidden',
                     }),
                     scrollerCoasterProps?.className,
                     css({
