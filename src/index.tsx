@@ -37,10 +37,14 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
         outerRef,
     ) => {
         const update = useUpdate();
-        const innerRef = useRef<HTMLDivElement>(null);
+        const innerRef = useRef<HTMLDivElement | null>(null);
         const scrollHeightRef = useRef<number>(0);
         const scrollWidthRef = useRef<number>(0);
         const boundingClientRectRef = useRef<DOMRect | null>(null);
+        const scrollTopRef = useRef<number>(0);
+        const scrollLeftRef = useRef<number>(0);
+        const horizontalTrackRef = useRef<HTMLDivElement | null>(null);
+        const verticalTrackRef = useRef<HTMLDivElement | null>(null);
 
         const getTrackHtmlProps = useCallback((props: ScrollerCoasterTrackProps) => {
             return _.omit(props, ['thumbProps', 'size']);
@@ -48,22 +52,39 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
 
         const getTrackStyles = useCallback<(variant: 'horizontal' | 'vertical') => CSSInterpolation>(
             (variant) => {
-                if (horizontalTrackProps === false || verticalTrackProps === false) {
+                if (
+                    horizontalTrackProps === false ||
+                    verticalTrackProps === false ||
+                    !(scrollWidthRef.current > 0) ||
+                    !(scrollHeightRef.current > 0)
+                ) {
                     return {};
                 }
                 return {
                     position: 'absolute',
                     ...(variant === 'horizontal'
-                        ? { left: 0, right: 0, bottom: 0, width: '100%', height: horizontalTrackProps?.size ?? 12 }
+                        ? {
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              width: scrollWidthRef.current,
+                              height: horizontalTrackProps?.size ?? 12,
+                          }
                         : {}),
                     ...(variant === 'vertical'
-                        ? { top: 0, bottom: 0, right: 0, height: '100%', width: verticalTrackProps?.size ?? 12 }
+                        ? {
+                              top: 0,
+                              bottom: 0,
+                              right: 0,
+                              height: scrollHeightRef.current,
+                              width: verticalTrackProps?.size ?? 12,
+                          }
                         : {}),
                     backgroundColor: 'rgba(0, 0, 0, 0.2)',
                     overflow: 'hidden',
                 };
             },
-            [horizontalTrackProps, verticalTrackProps],
+            [horizontalTrackProps, verticalTrackProps, scrollWidthRef.current, scrollHeightRef.current],
         );
 
         const getThumbStyles = useCallback<(variant: 'horizontal' | 'vertical') => CSSInterpolation>(
@@ -130,6 +151,76 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
             };
         }, [innerRef.current]);
 
+        useEffect(() => {
+            if (
+                !(innerRef.current instanceof HTMLElement) ||
+                !(scrollHeightRef.current > 0) ||
+                !(scrollWidthRef.current > 0) ||
+                !(boundingClientRectRef.current?.height > 0) ||
+                !(boundingClientRectRef.current?.width > 0)
+            ) {
+                return;
+            }
+
+            const wheelHandler = (event: WheelEvent) => {
+                event.stopPropagation();
+                event.preventDefault();
+
+                const newScrollTop = innerRef.current.scrollTop + event.deltaY;
+                const newScrollLeft = innerRef.current.scrollLeft + event.deltaX;
+
+                if (newScrollTop <= scrollHeightRef.current - boundingClientRectRef.current.height) {
+                    scrollTopRef.current = newScrollTop < 0 ? 0 : newScrollTop;
+                }
+
+                if (newScrollLeft <= scrollWidthRef.current - boundingClientRectRef.current.width) {
+                    scrollLeftRef.current = newScrollLeft < 0 ? 0 : newScrollLeft;
+                }
+
+                update();
+            };
+
+            innerRef.current.addEventListener('wheel', wheelHandler, { passive: false });
+
+            return () => {
+                innerRef.current.removeEventListener('wheel', wheelHandler);
+            };
+        }, [
+            innerRef.current,
+            scrollTopRef.current,
+            scrollLeftRef.current,
+            scrollHeightRef.current,
+            scrollWidthRef.current,
+            boundingClientRectRef.current,
+        ]);
+
+        useEffect(() => {
+            if (
+                !(innerRef.current instanceof HTMLElement) ||
+                !(boundingClientRectRef.current?.height > 0) ||
+                !(boundingClientRectRef.current?.width > 0)
+            ) {
+                return;
+            }
+
+            if (horizontalTrackRef.current instanceof HTMLElement) {
+                horizontalTrackRef.current.style.top = `${boundingClientRectRef.current.height + scrollTopRef.current - horizontalTrackRef.current.getBoundingClientRect().height}px`;
+            }
+
+            if (verticalTrackRef.current instanceof HTMLElement) {
+                verticalTrackRef.current.style.left = `${boundingClientRectRef.current.width + scrollLeftRef.current - verticalTrackRef.current.getBoundingClientRect().width}px`;
+            }
+
+            innerRef.current.scrollTo({ top: scrollTopRef.current, left: scrollLeftRef.current, behavior: 'instant' });
+        }, [
+            scrollTopRef.current,
+            scrollLeftRef.current,
+            horizontalTrackRef.current,
+            verticalTrackRef.current,
+            innerRef.current,
+            boundingClientRectRef.current,
+        ]);
+
         return (
             <div
                 {...scrollerCoasterProps}
@@ -158,22 +249,27 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                     <div
                         // Omit the `thumbProps` to prevent getting warnings from React
                         {...getTrackHtmlProps(horizontalTrackProps)}
+                        ref={horizontalTrackRef}
                         className={clsx(css(getTrackStyles('horizontal')), horizontalTrackProps?.className)}
                     >
                         <div
                             {...horizontalTrackProps?.thumbProps}
-                            className={clsx(css(getThumbStyles('horizontal')), horizontalTrackProps?.className)}
+                            className={clsx(
+                                css(getThumbStyles('horizontal')),
+                                horizontalTrackProps?.thumbProps?.className,
+                            )}
                         />
                     </div>
                 )}
                 {verticalTrackProps !== false && (
                     <div
                         {...getTrackHtmlProps(verticalTrackProps)}
+                        ref={verticalTrackRef}
                         className={clsx(css(getTrackStyles('vertical')), verticalTrackProps?.className)}
                     >
                         <div
                             {...verticalTrackProps?.thumbProps}
-                            className={clsx(css(getThumbStyles('vertical')), verticalTrackProps?.className)}
+                            className={clsx(css(getThumbStyles('vertical')), verticalTrackProps?.thumbProps?.className)}
                         />
                     </div>
                 )}
