@@ -10,6 +10,17 @@ interface ShapeSize {
     width: number;
 }
 
+interface Position {
+    /**
+     * @description The direction of the position
+     */
+    direction: 'horizontal' | 'vertical';
+    /**
+     * @description The distance from the origin of the container with specified `direction`
+     */
+    distance: number;
+}
+
 export interface ScrollerCoasterTrackProps extends React.HTMLAttributes<HTMLDivElement> {
     /**
      * @default 12
@@ -70,6 +81,17 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
         const verticalTrackRef = useRef<HTMLDivElement | null>(null);
         const horizontalThumbRef = useRef<HTMLDivElement | null>(null);
         const verticalThumbRef = useRef<HTMLDivElement | null>(null);
+        const lastPositionRef = useRef<Position | null>(null);
+
+        const isLegalPosition = useCallback(() => {
+            return (
+                lastPositionRef.current !== null &&
+                (['horizontal', 'vertical'] as Array<Position['direction']>).includes(
+                    lastPositionRef.current.direction,
+                ) &&
+                lastPositionRef.current.distance >= 0
+            );
+        }, [lastPositionRef.current]);
 
         const getTrackHtmlProps = useCallback((props: ScrollerCoasterTrackProps) => {
             return _.omit(props, ['thumbProps', 'size']);
@@ -359,7 +381,15 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                 scrollAnimationId = requestAnimationFrame(scrollAnimation);
             };
 
-            const mouseDownHandler = () => {
+            const mouseDownHandler = (event: MouseEvent) => {
+                if (
+                    event.target === horizontalThumbRef.current ||
+                    event.target === verticalThumbRef.current ||
+                    event.target === horizontalTrackRef.current ||
+                    event.target === verticalTrackRef.current
+                ) {
+                    return;
+                }
                 direction = null;
             };
 
@@ -390,6 +420,123 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
             draggingScrollThreshold,
             scrollHeightRef.current,
             shapeSizeRef.current,
+            horizontalThumbRef.current,
+            verticalThumbRef.current,
+            horizontalTrackRef.current,
+            verticalTrackRef.current,
+        ]);
+
+        useEffect(() => {
+            const mouseDownHandler = (event: MouseEvent) => {
+                event.stopPropagation();
+                event.preventDefault();
+
+                let direction: Position['direction'] = null;
+                let distance: number = 0;
+
+                if (event.target === verticalThumbRef.current) {
+                    direction = 'vertical';
+                    distance = event.clientY;
+                } else if (event.target === horizontalThumbRef.current) {
+                    direction = 'horizontal';
+                    distance = event.clientX;
+                }
+
+                if (!(['vertical', 'horizontal'] as Array<Position['direction']>).includes(direction)) return;
+
+                lastPositionRef.current = {
+                    direction,
+                    distance,
+                };
+
+                update();
+            };
+
+            const mouseUpHandler = (event: MouseEvent) => {
+                event.stopPropagation();
+                event.preventDefault();
+                lastPositionRef.current = null;
+                update();
+            };
+
+            const mouseMoveHandler = (event: MouseEvent) => {
+                event.stopPropagation();
+                event.preventDefault();
+
+                if (
+                    !isLegalPosition() ||
+                    !(shapeSizeRef.current?.height > 0) ||
+                    !(shapeSizeRef.current?.width > 0) ||
+                    !(scrollHeightRef.current > 0)
+                ) {
+                    return;
+                }
+
+                let currentDistance: number = 0;
+                let scrollSize: number = 0;
+                let legendShapeSize: number = 0;
+                let scrollDistance: number = 0;
+
+                switch (lastPositionRef.current.direction) {
+                    case 'vertical':
+                        currentDistance = event.clientY;
+                        scrollSize = scrollHeightRef.current;
+                        legendShapeSize = shapeSizeRef.current?.height;
+                        scrollDistance = scrollTopRef.current;
+                        break;
+                    case 'horizontal':
+                        currentDistance = event.clientX;
+                        scrollSize = scrollWidthRef.current;
+                        legendShapeSize = shapeSizeRef.current?.width;
+                        scrollDistance = scrollLeftRef.current;
+                        break;
+                }
+
+                let newScrollDistance =
+                    scrollDistance +
+                    (currentDistance - lastPositionRef.current.distance) * (scrollSize / legendShapeSize);
+
+                if (newScrollDistance < 0) {
+                    newScrollDistance = 0;
+                } else if (newScrollDistance > scrollHeightRef.current - shapeSizeRef.current?.height) {
+                    newScrollDistance = scrollHeightRef.current - shapeSizeRef.current?.height;
+                }
+
+                switch (lastPositionRef.current.direction) {
+                    case 'vertical':
+                        scrollTopRef.current = newScrollDistance;
+                        break;
+                    case 'horizontal':
+                        scrollLeftRef.current = newScrollDistance;
+                        break;
+                }
+
+                lastPositionRef.current = {
+                    direction: lastPositionRef.current.direction,
+                    distance: currentDistance,
+                };
+
+                update();
+            };
+
+            verticalThumbRef.current.addEventListener('mousedown', mouseDownHandler, true);
+            document.addEventListener('mouseup', mouseUpHandler, true);
+            document.addEventListener('mousemove', mouseMoveHandler, true);
+
+            return () => {
+                verticalThumbRef.current.removeEventListener('mousedown', mouseDownHandler, true);
+                document.removeEventListener('mouseup', mouseUpHandler, true);
+                document.removeEventListener('mousemove', mouseMoveHandler, true);
+            };
+        }, [
+            verticalThumbRef.current,
+            scrollHeightRef.current,
+            scrollLeftRef.current,
+            scrollTopRef.current,
+            shapeSizeRef.current,
+            lastPositionRef.current,
+            shapeSizeRef.current,
+            scrollHeightRef.current,
         ]);
 
         return (
@@ -397,11 +544,9 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                 {...scrollerCoasterProps}
                 ref={innerRef}
                 className={clsx(
-                    css({
-                        overflow: 'hidden',
-                    }),
                     scrollerCoasterProps?.className,
                     css({
+                        overflow: 'hidden',
                         position,
                         /* Hide scrollbar in FireFox */
                         scrollbarWidth: 'none',
