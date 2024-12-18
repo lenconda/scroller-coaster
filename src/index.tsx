@@ -45,6 +45,8 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
         const scrollLeftRef = useRef<number>(0);
         const horizontalTrackRef = useRef<HTMLDivElement | null>(null);
         const verticalTrackRef = useRef<HTMLDivElement | null>(null);
+        const horizontalThumbRef = useRef<HTMLDivElement | null>(null);
+        const verticalThumbRef = useRef<HTMLDivElement | null>(null);
 
         const getTrackHtmlProps = useCallback((props: ScrollerCoasterTrackProps) => {
             return _.omit(props, ['thumbProps', 'size']);
@@ -211,6 +213,20 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                 verticalTrackRef.current.style.left = `${boundingClientRectRef.current.width + scrollLeftRef.current - verticalTrackRef.current.getBoundingClientRect().width}px`;
             }
 
+            if (verticalThumbRef.current instanceof HTMLElement) {
+                const verticalThumbTop =
+                    scrollTopRef.current +
+                    (scrollTopRef.current / scrollHeightRef.current) * boundingClientRectRef.current.height;
+                verticalThumbRef.current.style.top = `${verticalThumbTop}px`;
+            }
+
+            if (horizontalThumbRef.current instanceof HTMLElement) {
+                const horizontalThumbLeft =
+                    scrollLeftRef.current +
+                    (scrollLeftRef.current / scrollWidthRef.current) * boundingClientRectRef.current.width;
+                horizontalThumbRef.current.style.left = `${horizontalThumbLeft}px`;
+            }
+
             innerRef.current.scrollTo({ top: scrollTopRef.current, left: scrollLeftRef.current, behavior: 'instant' });
         }, [
             scrollTopRef.current,
@@ -219,6 +235,8 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
             verticalTrackRef.current,
             innerRef.current,
             boundingClientRectRef.current,
+            verticalThumbRef.current,
+            horizontalThumbRef.current,
         ]);
 
         return (
@@ -254,6 +272,7 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                     >
                         <div
                             {...horizontalTrackProps?.thumbProps}
+                            ref={horizontalThumbRef}
                             className={clsx(
                                 css(getThumbStyles('horizontal')),
                                 horizontalTrackProps?.thumbProps?.className,
@@ -269,6 +288,7 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                     >
                         <div
                             {...verticalTrackProps?.thumbProps}
+                            ref={verticalThumbRef}
                             className={clsx(css(getThumbStyles('vertical')), verticalTrackProps?.thumbProps?.className)}
                         />
                     </div>
