@@ -90,10 +90,7 @@ jobs:
       - name: Install NTTC
         env:
           NORANTEC_PKGS_GITHUB_TOKEN: ${{ secrets.NORANTEC_PKGS_GITHUB_TOKEN }}
-        run: |
-          echo "@norantec:registry=https://npm.pkg.github.com" >> ~/.npmrc
-          echo "//npm.pkg.github.com/:_authToken=${NORANTEC_PKGS_GITHUB_TOKEN}" >> ~/.npmrc
-          npm i @norantec/nttc -g --registry=https://npm.pkg.github.com
+        run: npm i @norantec/nttc -g --registry=https://npm.pkg.github.com
 
       - name: Release with semantic-release
         env:
