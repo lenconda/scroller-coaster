@@ -285,13 +285,13 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                 setHovering(false);
             };
 
-            innerRef.current.addEventListener('mouseenter', mouseEnterHandler, { capture: true });
-            innerRef.current.addEventListener('mouseleave', mouseLeaveHandler, { capture: true });
+            innerRef.current.addEventListener('mouseenter', mouseEnterHandler, true);
+            innerRef.current.addEventListener('mouseleave', mouseLeaveHandler, true);
 
             return () => {
                 resizeObserver.disconnect();
-                innerRef.current.removeEventListener('mouseenter', mouseEnterHandler, { capture: true });
-                innerRef.current.removeEventListener('mouseleave', mouseLeaveHandler, { capture: true });
+                innerRef.current.removeEventListener('mouseenter', mouseEnterHandler, true);
+                innerRef.current.removeEventListener('mouseleave', mouseLeaveHandler, true);
             };
         }, [innerRef.current]);
 
@@ -310,18 +310,31 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                 event.stopPropagation();
                 event.preventDefault();
 
-                const newScrollTop = innerRef.current.scrollTop + event.deltaY;
-                const newScrollLeft = innerRef.current.scrollLeft + event.deltaX;
+                requestAnimationFrame(() => {
+                    const maxScrollTop = scrollHeightRef.current - shapeSizeRef.current.height;
+                    const maxScrollLeft = scrollWidthRef.current - shapeSizeRef.current.width;
 
-                if (newScrollTop <= scrollHeightRef.current - shapeSizeRef.current.height) {
-                    scrollTopRef.current = newScrollTop < 0 ? 0 : newScrollTop;
-                }
+                    let newScrollTop = scrollTopRef.current + event.deltaY;
+                    let newScrollLeft = scrollLeftRef.current + event.deltaX;
 
-                if (newScrollLeft <= scrollWidthRef.current - shapeSizeRef.current.width) {
-                    scrollLeftRef.current = newScrollLeft < 0 ? 0 : newScrollLeft;
-                }
+                    if (newScrollTop < 0) {
+                        newScrollTop = 0;
+                    } else if (newScrollTop > maxScrollTop) {
+                        newScrollTop = maxScrollTop;
+                    }
 
-                update();
+                    if (newScrollLeft < 0) {
+                        newScrollLeft = 0;
+                    } else if (newScrollLeft > maxScrollLeft) {
+                        newScrollLeft = maxScrollLeft;
+                    }
+
+                    if (scrollTopRef.current !== newScrollTop || scrollLeftRef.current !== newScrollLeft) {
+                        scrollTopRef.current = newScrollTop;
+                        scrollLeftRef.current = newScrollLeft;
+                        update();
+                    }
+                });
             };
 
             innerRef.current.addEventListener('wheel', wheelHandler, { passive: false });
