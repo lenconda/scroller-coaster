@@ -102,7 +102,6 @@ jobs:
         run: nttc bump npm --type $BRANCH_NAME --token $GITHUB_TOKEN --is-org --owner norantec
 
       - name: Publish package
-        run: npm publish
+        run: npm publish --access public
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
