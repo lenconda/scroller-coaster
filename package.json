@@ -5,9 +5,10 @@
     "main": "index.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "build": "rimraf lib && tsc --project tsconfig.build.json",
+        "build:lib": "rimraf lib && tsc --project tsconfig.build.json",
         "demo": "webpack serve --config webpack.config.js --mode development",
-        "demo:build": "webpack --config webpack.config.js --mode production"
+        "build:demo": "webpack --config webpack.config.js --mode production",
+        "build": "npm run build:lib && npm run build:demo"
     },
     "repository": {
         "type": "git",
@@ -18,6 +19,7 @@
         "url": "https://github.com/lenconda/scroller-coaster/issues"
     },
     "files": [
+        "demo",
         "lib"
     ],
     "homepage": "https://github.com/lenconda/scroller-coaster#readme",
