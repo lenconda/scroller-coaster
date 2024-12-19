@@ -91,7 +91,7 @@ jobs:
         env:
           NORANTEC_PKGS_GITHUB_TOKEN: ${{ secrets.NORANTEC_PKGS_GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NORANTEC_PKGS_GITHUB_TOKEN }}
-        run: npm i @norantec/nttc -g --registry=https://npm.pkg.github.com
+        run: npm i @norantec/nttc -g
 
       - name: Release with semantic-release
         env:
