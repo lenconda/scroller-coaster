@@ -2,7 +2,7 @@
     "name": "scroller-coaster",
     "version": "1.0.0",
     "description": "A customizable, flexible and wonderful scroll component for React.js and Next.js",
-    "main": "index.js",
+    "main": "lib/index.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "build:lib": "rimraf lib && tsc --project tsconfig.build.json",
@@ -56,5 +56,9 @@
         "ahooks": "^3.8.4",
         "clsx": "^2.1.1",
         "lodash": "^4.17.21"
+    },
+    "publishConfig": {
+        "registry": "https://registry.npmjs.org",
+        "access": "public"
     }
 }
