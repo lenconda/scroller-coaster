@@ -87,14 +87,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm i --legacy-peer-deps=true
 
-      - name: Prepare GitHub private package
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "@norantec:registry=https://npm.pkg.github.com" >> .npmrc
-          echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> .npmrc
-          echo "always-auth=true" >> .npmrc
-
       - name: Install NTTC
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
