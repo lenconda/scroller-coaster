@@ -235,11 +235,12 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
         );
 
         const calculateScrollSpeed = useCallback(
-            (distance: number) => {
-                return Math.min(
+            (distance: number, scrollingBack = false) => {
+                const result = Math.min(
                     ((draggingScrollThreshold - distance) / draggingScrollThreshold) * draggingScrollMaximumSpeed,
                     draggingScrollMaximumSpeed,
                 );
+                return scrollingBack ? 0 - result : result;
             },
             [draggingScrollMaximumSpeed, draggingScrollThreshold],
         );
@@ -409,7 +410,7 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                     if (distanceFromBottom < draggingScrollThreshold) {
                         scrollSpeed = calculateScrollSpeed(distanceFromBottom);
                     } else if (distanceFromTop < draggingScrollThreshold) {
-                        scrollSpeed = calculateScrollSpeed(distanceFromTop);
+                        scrollSpeed = calculateScrollSpeed(distanceFromTop, true);
                     } else {
                         scrollSpeed = 0;
                     }
@@ -418,7 +419,7 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                     if (distanceFromRight < draggingScrollThreshold) {
                         scrollSpeed = calculateScrollSpeed(distanceFromRight);
                     } else if (distanceFromLeft < draggingScrollThreshold) {
-                        scrollSpeed = calculateScrollSpeed(distanceFromLeft);
+                        scrollSpeed = calculateScrollSpeed(distanceFromLeft, true);
                     } else {
                         scrollSpeed = 0;
                     }
@@ -508,8 +509,8 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
             verticalThumbRef.current,
             horizontalTrackRef.current,
             verticalTrackRef.current,
-            scrollTopRef.current,
-            scrollLeftRef.current,
+            // scrollTopRef.current,
+            // scrollLeftRef.current,
         ]);
 
         useEffect(() => {
