@@ -27,6 +27,7 @@
         "react": ">= 16.8.0"
     },
     "devDependencies": {
+        "@norantec/nttc": "^1.0.0-alpha.71",
         "@stylistic/eslint-plugin": "^2.12.1",
         "@types/lodash": "^4.17.13",
         "@types/node": "^20.3.1",
