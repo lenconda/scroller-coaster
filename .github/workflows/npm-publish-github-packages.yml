@@ -91,8 +91,8 @@ jobs:
         env:
           NORANTEC_PKGS_GITHUB_TOKEN: ${{ secrets.NORANTEC_PKGS_GITHUB_TOKEN }}
         run: |
-          echo "@norantec:registry=https://npm.pkg.github.com" >> .npmrc
-          echo "//npm.pkg.github.com/:_authToken=${NORANTEC_PKGS_GITHUB_TOKEN}" >> .npmrc
+          echo "@norantec:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${NORANTEC_PKGS_GITHUB_TOKEN}" >> ~/.npmrc
           npm i @norantec/nttc -g --registry=https://npm.pkg.github.com
 
       - name: Release with semantic-release
@@ -102,6 +102,8 @@ jobs:
         run: nttc bump npm --type $BRANCH_NAME --token $GITHUB_TOKEN --is-org --owner norantec
 
       - name: Publish package
-        run: npm publish --access public --registry=https://registry.npmjs.org
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: /
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
+          npm publish --access public --registry=https://registry.npmjs.org
