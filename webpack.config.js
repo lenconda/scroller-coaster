@@ -6,12 +6,11 @@ module.exports = {
         demo: './src/demo.tsx',
     },
     output: {
-        path: path.resolve(__dirname, 'dist'),
+        path: path.resolve(__dirname, 'demo'),
         filename: '[name].js',
         publicPath: '/',
         clean: true,
     },
-    mode: 'development',
     module: {
         rules: [
             {

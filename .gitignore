@@ -5,4 +5,4 @@ node_modules
 lib*
 test.ts
 package-lock.json
-
+demo/demo.js*

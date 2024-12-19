@@ -6,7 +6,8 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "build": "rimraf lib && tsc --project tsconfig.build.json",
-        "demo": "webpack serve --config webpack.config.js"
+        "demo": "webpack serve --config webpack.config.js --mode development",
+        "demo:build": "webpack --config webpack.config.js --mode production"
     },
     "repository": {
         "type": "git",
