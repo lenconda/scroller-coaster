@@ -53,7 +53,7 @@ const App: React.FC = () => {
                     quas, qui autem, ratione consequuntur non sunt.
                 </ScrollerCoaster>
             </div>
-            {/* <div>
+            <div>
                 <h6>Horizontal scrolling</h6>
                 <ScrollerCoaster
                     style={{
@@ -79,7 +79,55 @@ const App: React.FC = () => {
                         delectus unde necessitatibus ab.
                     </div>
                 </ScrollerCoaster>
-            </div> */}
+            </div>
+            <div>
+                <h6>RTL vertical</h6>
+                <ScrollerCoaster
+                    style={{
+                        width: 180,
+                        height: 400,
+                        border: '1px solid blue',
+                    }}
+                    horizontalTrackProps={{
+                        showMode: 'always',
+                    }}
+                    verticalTrackProps={{
+                        showMode: 'always',
+                    }}
+                    dir="rtl"
+                >
+                    {/* eslint-disable-next-line prettier/prettier */}
+                    <div>وقال المالكي في كلمته الأسبوعية إنه "أصبح واضحا للعراقيين وللعالم الذي يراقب مشهد تحركات الإرهاب في المنطقة بأن العراق يتعرض إلى حرب إبادة تستهدف جميع مكوناته" محذرا من أن  تنظيم القاعدة عاد لممارسة دوره "في هدم بيوت المواطنين وقتلهم وتفجير دوائر الدولة".</div>
+                    {/* eslint-disable-next-line prettier/prettier */}
+                    <div>وفي حين يشهد العراق تصاعدا في أعمال العنف اليومية منذ أبريل/نيسان الماضي، أشاد المالكي بقدرة قوات الأمن في بلاده على صد أي هجمات، مؤكدا أنها لن تسمح لتنظيم القاعدة بالسيطرة على أي شبر من أراضي العراق.</div>
+                    {/* eslint-disable-next-line prettier/prettier */}
+                    <div>ومنذ بداية أكتوبر/ تشرين الأول الجاري قٌتل أكثر من 540 شخصا في أعمال عنف متفرقة، وأكثر من 5250 منذ بداية العام 2013، وفق حصيلة أعدتها وكالة الصحافة الفرنسية استنادا إلى مصادر أمنية وطبية.</div>
+                </ScrollerCoaster>
+            </div>
+            <div>
+                <h6>RTL horizontal</h6>
+                <ScrollerCoaster
+                    style={{
+                        width: 400,
+                        border: '1px solid blue',
+                        whiteSpace: 'nowrap',
+                    }}
+                    horizontalTrackProps={{
+                        showMode: 'always',
+                    }}
+                    verticalTrackProps={{
+                        showMode: 'always',
+                    }}
+                    dir="rtl"
+                >
+                    {/* eslint-disable-next-line prettier/prettier */}
+                    <div>وقال المالكي في كلمته الأسبوعية إنه "أصبح واضحا للعراقيين وللعالم الذي يراقب مشهد تحركات الإرهاب في المنطقة بأن العراق يتعرض إلى حرب إبادة تستهدف جميع مكوناته" محذرا من أن  تنظيم القاعدة عاد لممارسة دوره "في هدم بيوت المواطنين وقتلهم وتفجير دوائر الدولة".</div>
+                    {/* eslint-disable-next-line prettier/prettier */}
+                    <div>وفي حين يشهد العراق تصاعدا في أعمال العنف اليومية منذ أبريل/نيسان الماضي، أشاد المالكي بقدرة قوات الأمن في بلاده على صد أي هجمات، مؤكدا أنها لن تسمح لتنظيم القاعدة بالسيطرة على أي شبر من أراضي العراق.</div>
+                    {/* eslint-disable-next-line prettier/prettier */}
+                    <div>ومنذ بداية أكتوبر/ تشرين الأول الجاري قٌتل أكثر من 540 شخصا في أعمال عنف متفرقة، وأكثر من 5250 منذ بداية العام 2013، وفق حصيلة أعدتها وكالة الصحافة الفرنسية استنادا إلى مصادر أمنية وطبية.</div>
+                </ScrollerCoaster>
+            </div>
         </>
     );
 };

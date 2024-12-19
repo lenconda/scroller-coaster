@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
 import _ from 'lodash';
 import { css } from '@emotion/css';
@@ -64,6 +64,7 @@ export interface ScrollerCoasterProps extends React.HTMLAttributes<HTMLDivElemen
 export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterProps>(
     (
         {
+            dir,
             children,
             horizontalTrackProps,
             verticalTrackProps,
@@ -74,6 +75,7 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
         outerRef,
     ) => {
         const update = useUpdate();
+        const isRtl = useMemo(() => dir === 'rtl', [dir]);
         const innerRef = useRef<HTMLDivElement | null>(null);
         const scrollHeightRef = useRef<number>(0);
         const scrollWidthRef = useRef<number>(0);
@@ -160,7 +162,6 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                                     })(),
                                     left: 0,
                                     right: 0,
-                                    bottom: 0,
                                     width: shapeSizeRef.current.width,
                                     height: horizontalTrackProps?.size ?? 12,
                                 };
@@ -176,7 +177,6 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                                     })(),
                                     top: 0,
                                     bottom: 0,
-                                    right: 0,
                                     height: shapeSizeRef.current.height,
                                     width: verticalTrackProps?.size ?? 12,
                                 };
@@ -358,7 +358,7 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                     const maxScrollLeft = scrollWidthRef.current - shapeSizeRef.current.width;
 
                     let newScrollTop = scrollTopRef.current + event.deltaY;
-                    let newScrollLeft = scrollLeftRef.current + event.deltaX;
+                    let newScrollLeft = scrollLeftRef.current + (isRtl ? 0 - event.deltaX : event.deltaX);
 
                     if (newScrollTop < 0) {
                         newScrollTop = 0;
@@ -392,6 +392,7 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
             scrollHeightRef.current,
             scrollWidthRef.current,
             shapeSizeRef.current,
+            isRtl,
         ]);
 
         useEffect(() => {
@@ -406,19 +407,35 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
             if (horizontalTrackRef.current instanceof HTMLElement) {
                 const horizontalThumbLeft =
                     (scrollLeftRef.current / scrollWidthRef.current) * shapeSizeRef.current.width;
-                horizontalThumbRef.current.style.left = `${horizontalThumbLeft}px`;
                 horizontalTrackRef.current.style.top = `${shapeSizeRef.current.height + scrollTopRef.current - horizontalTrackRef.current.clientHeight}px`;
-                horizontalTrackRef.current.style.left = `${scrollLeftRef.current}px`;
+
+                if (isRtl) {
+                    horizontalThumbRef.current.style.right = `${horizontalThumbLeft}px`;
+                    horizontalTrackRef.current.style.right = `${scrollLeftRef.current}px`;
+                } else {
+                    horizontalThumbRef.current.style.left = `${horizontalThumbLeft}px`;
+                    horizontalTrackRef.current.style.left = `${scrollLeftRef.current}px`;
+                }
             }
 
             if (verticalTrackRef.current instanceof HTMLElement) {
                 const verticalThumbTop = (scrollTopRef.current / scrollHeightRef.current) * shapeSizeRef.current.height;
+
+                if (isRtl) {
+                    verticalTrackRef.current.style.right = `${shapeSizeRef.current.width + scrollLeftRef.current - verticalTrackRef.current.clientWidth}px`;
+                } else {
+                    verticalTrackRef.current.style.left = `${shapeSizeRef.current.width + scrollLeftRef.current - verticalTrackRef.current.clientWidth}px`;
+                }
+
                 verticalThumbRef.current.style.top = `${verticalThumbTop}px`;
-                verticalTrackRef.current.style.left = `${shapeSizeRef.current.width + scrollLeftRef.current - verticalTrackRef.current.clientWidth}px`;
                 verticalTrackRef.current.style.top = `${scrollTopRef.current}px`;
             }
 
-            innerRef.current.scrollTo({ top: scrollTopRef.current, left: scrollLeftRef.current, behavior: 'instant' });
+            innerRef.current.scrollTo({
+                top: scrollTopRef.current,
+                left: isRtl ? 0 - scrollLeftRef.current : scrollLeftRef.current,
+                behavior: 'instant',
+            });
         }, [
             scrollTopRef.current,
             scrollLeftRef.current,
@@ -428,6 +445,7 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
             shapeSizeRef.current,
             verticalThumbRef.current,
             horizontalThumbRef.current,
+            isRtl,
         ]);
 
         useEffect(() => {
@@ -462,9 +480,9 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                 if (distanceFromLeft < draggingScrollThreshold || distanceFromRight < draggingScrollThreshold) {
                     directions.push('horizontal');
                     if (distanceFromRight < draggingScrollThreshold) {
-                        scrollSpeed = calculateScrollSpeed(distanceFromRight);
+                        scrollSpeed = calculateScrollSpeed(distanceFromRight, isRtl ? true : false);
                     } else if (distanceFromLeft < draggingScrollThreshold) {
-                        scrollSpeed = calculateScrollSpeed(distanceFromLeft, true);
+                        scrollSpeed = calculateScrollSpeed(distanceFromLeft, isRtl ? false : true);
                     } else {
                         scrollSpeed = 0;
                     }
@@ -548,6 +566,7 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
             verticalThumbRef.current,
             horizontalTrackRef.current,
             verticalTrackRef.current,
+            isRtl,
         ]);
 
         useEffect(() => {
@@ -616,9 +635,11 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                         break;
                 }
 
-                let newScrollDistance =
-                    scrollDistance +
-                    (currentDistance - lastPositionRef.current.distance) * (scrollSize / legendShapeSize);
+                const distanceDiff =
+                    lastPositionRef.current.direction === 'horizontal' && isRtl
+                        ? 0 - (currentDistance - lastPositionRef.current.distance)
+                        : currentDistance - lastPositionRef.current.distance;
+                let newScrollDistance = scrollDistance + distanceDiff * (scrollSize / legendShapeSize);
 
                 if (newScrollDistance < 0) {
                     newScrollDistance = 0;
@@ -664,11 +685,13 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
             shapeSizeRef.current,
             lastPositionRef.current,
             shapeSizeRef.current,
+            isRtl,
         ]);
 
         return (
             <div
                 {...scrollerCoasterProps}
+                dir={isRtl ? 'rtl' : 'ltr'}
                 ref={innerRef}
                 className={clsx(
                     css({
