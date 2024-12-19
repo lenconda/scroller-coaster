@@ -77,7 +77,7 @@ jobs:
 
       - name: Extract artifact
         run: |
-          unzip artifact.zip
+          unzip -o artifact.zip
 
       - name: Check cache
         run: |
