@@ -90,7 +90,7 @@ jobs:
       - name: Prepare GitHub private package
         run: |
           echo "@norantec:registry=https://npm.pkg.github.com" >> .npmrc
-          echo "//registry.npmjs.org/:_authToken=${GITHUB_TOKEN}" >> .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> .npmrc
 
       - name: Install NTTC
         env:
