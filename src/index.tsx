@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import clsx from 'clsx';
 import _ from 'lodash';
 import { css } from '@emotion/css';
-import { useUpdate } from 'ahooks';
+import { useDebounceFn, useUpdate } from 'ahooks';
 import { CSSInterpolation } from '@emotion/css/dist/declarations/src/create-instance';
 
 interface ShapeSize {
@@ -22,6 +22,11 @@ interface Position {
 }
 
 export interface ScrollerCoasterTrackProps extends React.HTMLAttributes<HTMLDivElement> {
+    /**
+     * @description The mode of showing the track
+     * @default 'scrolling'
+     */
+    showMode?: 'always' | 'hover' | 'scrolling';
     /**
      * @default 12
      */
@@ -46,22 +51,20 @@ export interface ScrollerCoasterProps extends React.HTMLAttributes<HTMLDivElemen
     draggingScrollThreshold?: number;
     /**
      * @description Horizontal track props
-     * @type ScrollerCoasterTrackProps | false
+     * @type ScrollerCoasterTrackProps
      */
-    horizontalTrackProps?: ScrollerCoasterTrackProps | false;
-    position?: 'absolute' | 'relative';
+    horizontalTrackProps?: ScrollerCoasterTrackProps;
     /**
      * @description Vertical track props
-     * @type ScrollerCoasterTrackProps | false
+     * @type ScrollerCoasterTrackProps
      */
-    verticalTrackProps?: ScrollerCoasterTrackProps | false;
+    verticalTrackProps?: ScrollerCoasterTrackProps;
 }
 
 export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterProps>(
     (
         {
             children,
-            position = 'relative',
             horizontalTrackProps,
             verticalTrackProps,
             draggingScrollMaximumSpeed = 15,
@@ -82,6 +85,8 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
         const horizontalThumbRef = useRef<HTMLDivElement | null>(null);
         const verticalThumbRef = useRef<HTMLDivElement | null>(null);
         const lastPositionRef = useRef<Position | null>(null);
+        const [hovering, setHovering] = useState<boolean>(false);
+        const [scrolling, setScrolling] = useState<boolean>(false);
 
         const isLegalPosition = useCallback(() => {
             return (
@@ -94,51 +99,104 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
         }, [lastPositionRef.current]);
 
         const getTrackHtmlProps = useCallback((props: ScrollerCoasterTrackProps) => {
-            return _.omit(props, ['thumbProps', 'size']);
+            return _.omit(props, ['thumbProps', 'size', 'showMode']);
         }, []);
+
+        const getTrackShowState = useCallback(
+            (variant: 'horizontal' | 'vertical') => {
+                if (lastPositionRef.current?.direction === variant) return true;
+
+                let trackProps: ScrollerCoasterTrackProps;
+
+                switch (variant) {
+                    case 'horizontal': {
+                        trackProps = horizontalTrackProps;
+                        break;
+                    }
+                    case 'vertical': {
+                        trackProps = verticalTrackProps;
+                        break;
+                    }
+                }
+
+                if (scrolling || trackProps?.showMode === 'always' || (trackProps?.showMode === 'hover' && hovering)) {
+                    return true;
+                }
+
+                return false;
+            },
+            [horizontalTrackProps, verticalTrackProps, hovering, scrolling, lastPositionRef.current],
+        );
 
         const getTrackStyles = useCallback<(variant: 'horizontal' | 'vertical') => CSSInterpolation>(
             (variant) => {
                 if (
-                    horizontalTrackProps === false ||
-                    verticalTrackProps === false ||
                     !(scrollWidthRef.current > 0) ||
-                    !(scrollHeightRef.current > 0)
+                    !(scrollHeightRef.current > 0) ||
+                    !(shapeSizeRef.current?.width > 0) ||
+                    !(shapeSizeRef.current?.height > 0)
                 ) {
-                    return {};
+                    return {
+                        display: 'none',
+                    };
                 }
                 return {
                     position: 'absolute',
-                    ...(variant === 'horizontal'
-                        ? {
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              width: scrollWidthRef.current,
-                              height: horizontalTrackProps?.size ?? 12,
-                          }
-                        : {}),
-                    ...(variant === 'vertical'
-                        ? {
-                              top: 0,
-                              bottom: 0,
-                              right: 0,
-                              height: scrollHeightRef.current,
-                              width: verticalTrackProps?.size ?? 12,
-                          }
-                        : {}),
-                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                    transition: 'opacity 0.3s ease-in-out',
                     overflow: 'hidden',
+                    opacity: getTrackShowState(variant) ? 1 : 0,
+                    ...(() => {
+                        switch (variant) {
+                            case 'horizontal': {
+                                return {
+                                    ...(() => {
+                                        if (scrollWidthRef.current <= shapeSizeRef.current.width) {
+                                            return {
+                                                display: 'none',
+                                            };
+                                        }
+                                    })(),
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    width: scrollWidthRef.current,
+                                    height: horizontalTrackProps?.size ?? 12,
+                                };
+                            }
+                            case 'vertical': {
+                                return {
+                                    ...(() => {
+                                        if (scrollHeightRef.current <= shapeSizeRef.current.height) {
+                                            return {
+                                                display: 'none',
+                                            };
+                                        }
+                                    })(),
+                                    top: 0,
+                                    bottom: 0,
+                                    right: 0,
+                                    height: scrollHeightRef.current,
+                                    width: verticalTrackProps?.size ?? 12,
+                                };
+                            }
+                        }
+                    })(),
                 };
             },
-            [horizontalTrackProps, verticalTrackProps, scrollWidthRef.current, scrollHeightRef.current],
+            [
+                horizontalTrackProps,
+                verticalTrackProps,
+                scrollWidthRef.current,
+                scrollHeightRef.current,
+                shapeSizeRef.current,
+                scrolling,
+                hovering,
+            ],
         );
 
         const getThumbStyles = useCallback<(variant: 'horizontal' | 'vertical') => CSSInterpolation>(
             (variant) => {
                 if (
-                    horizontalTrackProps === false ||
-                    verticalTrackProps === false ||
                     !(shapeSizeRef.current?.height > 0) ||
                     !(shapeSizeRef.current?.width > 0) ||
                     !(scrollHeightRef.current > 0)
@@ -176,7 +234,33 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
             ],
         );
 
+        const calculateScrollSpeed = useCallback(
+            (distance: number) => {
+                return Math.min(
+                    ((draggingScrollThreshold - distance) / draggingScrollThreshold) * draggingScrollMaximumSpeed,
+                    draggingScrollMaximumSpeed,
+                );
+            },
+            [draggingScrollMaximumSpeed, draggingScrollThreshold],
+        );
+
+        const clearScrolling = useDebounceFn(
+            () => {
+                setScrolling(false);
+            },
+            { wait: 1000 },
+        );
+
         useImperativeHandle(outerRef, () => innerRef.current);
+
+        useEffect(() => {
+            setScrolling(true);
+        }, [scrollLeftRef.current, scrollTopRef.current]);
+
+        useEffect(() => {
+            if (scrolling === false) return;
+            clearScrolling.run();
+        }, [scrolling]);
 
         useEffect(() => {
             if (!(innerRef.current instanceof HTMLElement)) return;
@@ -193,8 +277,21 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
 
             resizeObserver.observe(innerRef.current);
 
+            const mouseEnterHandler = () => {
+                setHovering(true);
+            };
+
+            const mouseLeaveHandler = () => {
+                setHovering(false);
+            };
+
+            innerRef.current.addEventListener('mouseenter', mouseEnterHandler, { capture: true });
+            innerRef.current.addEventListener('mouseleave', mouseLeaveHandler, { capture: true });
+
             return () => {
                 resizeObserver.disconnect();
+                innerRef.current.removeEventListener('mouseenter', mouseEnterHandler, { capture: true });
+                innerRef.current.removeEventListener('mouseleave', mouseLeaveHandler, { capture: true });
             };
         }, [innerRef.current]);
 
@@ -251,25 +348,19 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
             }
 
             if (horizontalTrackRef.current instanceof HTMLElement) {
-                horizontalTrackRef.current.style.top = `${shapeSizeRef.current.height + scrollTopRef.current - horizontalTrackRef.current.clientHeight}px`;
-            }
-
-            if (verticalTrackRef.current instanceof HTMLElement) {
-                verticalTrackRef.current.style.left = `${shapeSizeRef.current.width + scrollLeftRef.current - verticalTrackRef.current.clientWidth}px`;
-            }
-
-            if (verticalThumbRef.current instanceof HTMLElement) {
-                const verticalThumbTop =
-                    scrollTopRef.current +
-                    (scrollTopRef.current / scrollHeightRef.current) * shapeSizeRef.current.height;
-                verticalThumbRef.current.style.top = `${verticalThumbTop}px`;
-            }
-
-            if (horizontalThumbRef.current instanceof HTMLElement) {
                 const horizontalThumbLeft =
                     scrollLeftRef.current +
                     (scrollLeftRef.current / scrollWidthRef.current) * shapeSizeRef.current.width;
                 horizontalThumbRef.current.style.left = `${horizontalThumbLeft}px`;
+                horizontalTrackRef.current.style.top = `${shapeSizeRef.current.height + scrollTopRef.current - horizontalTrackRef.current.clientHeight}px`;
+            }
+
+            if (verticalTrackRef.current instanceof HTMLElement) {
+                const verticalThumbTop =
+                    scrollTopRef.current +
+                    (scrollTopRef.current / scrollHeightRef.current) * shapeSizeRef.current.height;
+                verticalThumbRef.current.style.top = `${verticalThumbTop}px`;
+                verticalTrackRef.current.style.left = `${shapeSizeRef.current.width + scrollLeftRef.current - verticalTrackRef.current.clientWidth}px`;
             }
 
             innerRef.current.scrollTo({ top: scrollTopRef.current, left: scrollLeftRef.current, behavior: 'instant' });
@@ -303,38 +394,18 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                 if (distanceFromBottom < draggingScrollThreshold || distanceFromTop < draggingScrollThreshold) {
                     direction = 'vertical';
                     if (distanceFromBottom < draggingScrollThreshold) {
-                        scrollSpeed = Math.min(
-                            ((draggingScrollThreshold - distanceFromBottom) / draggingScrollThreshold) *
-                                draggingScrollMaximumSpeed,
-                            draggingScrollMaximumSpeed,
-                        );
+                        scrollSpeed = calculateScrollSpeed(distanceFromBottom);
                     } else if (distanceFromTop < draggingScrollThreshold) {
-                        scrollSpeed =
-                            0 -
-                            Math.min(
-                                ((draggingScrollThreshold - distanceFromTop) / draggingScrollThreshold) *
-                                    draggingScrollMaximumSpeed,
-                                draggingScrollMaximumSpeed,
-                            );
+                        scrollSpeed = calculateScrollSpeed(distanceFromTop);
                     } else {
                         scrollSpeed = 0;
                     }
                 } else if (distanceFromLeft < draggingScrollThreshold || distanceFromRight < draggingScrollThreshold) {
                     direction = 'horizontal';
                     if (distanceFromRight < draggingScrollThreshold) {
-                        scrollSpeed = Math.min(
-                            ((draggingScrollThreshold - distanceFromRight) / draggingScrollThreshold) *
-                                draggingScrollMaximumSpeed,
-                            draggingScrollMaximumSpeed,
-                        );
+                        scrollSpeed = calculateScrollSpeed(distanceFromRight);
                     } else if (distanceFromLeft < draggingScrollThreshold) {
-                        scrollSpeed =
-                            0 -
-                            Math.min(
-                                ((draggingScrollThreshold - distanceFromLeft) / draggingScrollThreshold) *
-                                    draggingScrollMaximumSpeed,
-                                draggingScrollMaximumSpeed,
-                            );
+                        scrollSpeed = calculateScrollSpeed(distanceFromLeft);
                     } else {
                         scrollSpeed = 0;
                     }
@@ -424,6 +495,8 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
             verticalThumbRef.current,
             horizontalTrackRef.current,
             verticalTrackRef.current,
+            scrollTopRef.current,
+            scrollLeftRef.current,
         ]);
 
         useEffect(() => {
@@ -544,10 +617,12 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                 {...scrollerCoasterProps}
                 ref={innerRef}
                 className={clsx(
+                    css({
+                        position: 'relative',
+                    }),
                     scrollerCoasterProps?.className,
                     css({
                         overflow: 'hidden',
-                        position,
                         /* Hide scrollbar in FireFox */
                         scrollbarWidth: 'none',
                         /* Hide scrollbar in Edge/IE */
@@ -561,36 +636,29 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
             >
                 {children}
                 {/* If passed value of `horizontalTrackProps` is `false`, then hide the whole horizontal track */}
-                {horizontalTrackProps !== false && (
+                <div
+                    // Omit the `thumbProps` to prevent getting warnings from React
+                    {...getTrackHtmlProps(horizontalTrackProps)}
+                    ref={horizontalTrackRef}
+                    className={clsx(css(getTrackStyles('horizontal')), horizontalTrackProps?.className)}
+                >
                     <div
-                        // Omit the `thumbProps` to prevent getting warnings from React
-                        {...getTrackHtmlProps(horizontalTrackProps)}
-                        ref={horizontalTrackRef}
-                        className={clsx(css(getTrackStyles('horizontal')), horizontalTrackProps?.className)}
-                    >
-                        <div
-                            {...horizontalTrackProps?.thumbProps}
-                            ref={horizontalThumbRef}
-                            className={clsx(
-                                css(getThumbStyles('horizontal')),
-                                horizontalTrackProps?.thumbProps?.className,
-                            )}
-                        />
-                    </div>
-                )}
-                {verticalTrackProps !== false && (
+                        {...horizontalTrackProps?.thumbProps}
+                        ref={horizontalThumbRef}
+                        className={clsx(css(getThumbStyles('horizontal')), horizontalTrackProps?.thumbProps?.className)}
+                    />
+                </div>
+                <div
+                    {...getTrackHtmlProps(verticalTrackProps)}
+                    ref={verticalTrackRef}
+                    className={clsx(css(getTrackStyles('vertical')), verticalTrackProps?.className)}
+                >
                     <div
-                        {...getTrackHtmlProps(verticalTrackProps)}
-                        ref={verticalTrackRef}
-                        className={clsx(css(getTrackStyles('vertical')), verticalTrackProps?.className)}
-                    >
-                        <div
-                            {...verticalTrackProps?.thumbProps}
-                            ref={verticalThumbRef}
-                            className={clsx(css(getThumbStyles('vertical')), verticalTrackProps?.thumbProps?.className)}
-                        />
-                    </div>
-                )}
+                        {...verticalTrackProps?.thumbProps}
+                        ref={verticalThumbRef}
+                        className={clsx(css(getThumbStyles('vertical')), verticalTrackProps?.thumbProps?.className)}
+                    />
+                </div>
             </div>
         );
     },

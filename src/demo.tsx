@@ -10,6 +10,12 @@ const App: React.FC = () => {
                 height: 400,
                 border: '1px solid blue',
             }}
+            horizontalTrackProps={{
+                showMode: 'always',
+            }}
+            verticalTrackProps={{
+                showMode: 'always',
+            }}
         >
             Lorem ipsum, dolor sit amet consectetur adipisicing elit. Perferendis quasi sapiente culpa, iure quisquam
             quam fugit ea? Accusamus minima architecto molestias, dolore at repellat eius quaerat cum iure illum
