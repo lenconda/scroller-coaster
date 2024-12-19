@@ -37,7 +37,7 @@ jobs:
 
       - name: Pack-up artifact
         run: |
-          zip -r artifact.zip lib
+          zip -r artifact.zip lib demo
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
@@ -82,6 +82,7 @@ jobs:
       - name: Check cache
         run: |
           ls -al ./lib
+          ls -al ./demo
 
       - name: Install dependencies
         env:
