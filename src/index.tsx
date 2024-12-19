@@ -138,6 +138,8 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                 ) {
                     return {
                         display: 'none',
+                        position: 'absolute',
+                        overflow: 'hidden',
                     };
                 }
                 return {
@@ -159,7 +161,7 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                                     left: 0,
                                     right: 0,
                                     bottom: 0,
-                                    width: scrollWidthRef.current,
+                                    width: shapeSizeRef.current.width,
                                     height: horizontalTrackProps?.size ?? 12,
                                 };
                             }
@@ -175,7 +177,7 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
                                     top: 0,
                                     bottom: 0,
                                     right: 0,
-                                    height: scrollHeightRef.current,
+                                    height: shapeSizeRef.current.height,
                                     width: verticalTrackProps?.size ?? 12,
                                 };
                             }
@@ -266,16 +268,48 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
         useEffect(() => {
             if (!(innerRef.current instanceof HTMLElement)) return;
 
-            const resizeObserver = new ResizeObserver(() => {
-                scrollHeightRef.current = innerRef.current.scrollHeight;
-                scrollWidthRef.current = innerRef.current.scrollWidth;
-                shapeSizeRef.current = {
-                    height: innerRef.current.clientHeight,
-                    width: innerRef.current.clientWidth,
-                };
-                update();
-            });
+            const observerHandler = () => {
+                let changed = false;
 
+                if (scrollHeightRef.current !== innerRef.current.scrollHeight) {
+                    scrollHeightRef.current = innerRef.current.scrollHeight;
+                    changed = true;
+                }
+
+                if (scrollWidthRef.current !== innerRef.current.scrollWidth) {
+                    scrollWidthRef.current = innerRef.current.scrollWidth;
+                    changed = true;
+                }
+
+                if (
+                    shapeSizeRef.current?.height !== innerRef.current.clientHeight ||
+                    shapeSizeRef.current?.width !== innerRef.current.clientWidth
+                ) {
+                    shapeSizeRef.current = {
+                        height: innerRef.current.clientHeight,
+                        width: innerRef.current.clientWidth,
+                    };
+                    changed = true;
+                }
+
+                if (changed) {
+                    update();
+                }
+            };
+
+            const mutationObserver = new MutationObserver(observerHandler);
+            const resizeObserver = new ResizeObserver(observerHandler);
+
+            observerHandler();
+
+            mutationObserver.observe(innerRef.current, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                characterData: true,
+                attributeOldValue: true,
+                characterDataOldValue: true,
+            });
             resizeObserver.observe(innerRef.current);
 
             const mouseEnterHandler = () => {
@@ -290,11 +324,19 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
             innerRef.current.addEventListener('mouseleave', mouseLeaveHandler, true);
 
             return () => {
+                mutationObserver.disconnect();
                 resizeObserver.disconnect();
                 innerRef.current.removeEventListener('mouseenter', mouseEnterHandler, true);
                 innerRef.current.removeEventListener('mouseleave', mouseLeaveHandler, true);
             };
-        }, [innerRef.current]);
+        }, [
+            innerRef.current,
+            scrollHeightRef.current,
+            scrollWidthRef.current,
+            shapeSizeRef.current,
+            verticalTrackRef.current,
+            horizontalThumbRef.current,
+        ]);
 
         useEffect(() => {
             if (
@@ -363,18 +405,17 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
 
             if (horizontalTrackRef.current instanceof HTMLElement) {
                 const horizontalThumbLeft =
-                    scrollLeftRef.current +
                     (scrollLeftRef.current / scrollWidthRef.current) * shapeSizeRef.current.width;
                 horizontalThumbRef.current.style.left = `${horizontalThumbLeft}px`;
                 horizontalTrackRef.current.style.top = `${shapeSizeRef.current.height + scrollTopRef.current - horizontalTrackRef.current.clientHeight}px`;
+                horizontalTrackRef.current.style.left = `${scrollLeftRef.current}px`;
             }
 
             if (verticalTrackRef.current instanceof HTMLElement) {
-                const verticalThumbTop =
-                    scrollTopRef.current +
-                    (scrollTopRef.current / scrollHeightRef.current) * shapeSizeRef.current.height;
+                const verticalThumbTop = (scrollTopRef.current / scrollHeightRef.current) * shapeSizeRef.current.height;
                 verticalThumbRef.current.style.top = `${verticalThumbTop}px`;
                 verticalTrackRef.current.style.left = `${shapeSizeRef.current.width + scrollLeftRef.current - verticalTrackRef.current.clientWidth}px`;
+                verticalTrackRef.current.style.top = `${scrollTopRef.current}px`;
             }
 
             innerRef.current.scrollTo({ top: scrollTopRef.current, left: scrollLeftRef.current, behavior: 'instant' });

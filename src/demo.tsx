@@ -1,17 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { ScrollerCoaster } from '.';
 
 const App: React.FC = () => {
+    const [noWrap, setNoWrap] = useState(false);
+
     return (
         <>
             <div>
                 <h6>Vertical scrolling</h6>
+                <button onClick={() => setNoWrap(!noWrap)}>Toggle `noWrap`</button>
                 <ScrollerCoaster
                     style={{
-                        width: 400,
+                        width: '50%',
                         height: 400,
                         border: '1px solid blue',
+                        whiteSpace: noWrap ? 'nowrap' : 'normal',
                     }}
                     horizontalTrackProps={{
                         showMode: 'always',
@@ -49,7 +53,7 @@ const App: React.FC = () => {
                     quas, qui autem, ratione consequuntur non sunt.
                 </ScrollerCoaster>
             </div>
-            <div>
+            {/* <div>
                 <h6>Horizontal scrolling</h6>
                 <ScrollerCoaster
                     style={{
@@ -75,7 +79,7 @@ const App: React.FC = () => {
                         delectus unde necessitatibus ab.
                     </div>
                 </ScrollerCoaster>
-            </div>
+            </div> */}
         </>
     );
 };
