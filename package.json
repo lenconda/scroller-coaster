@@ -24,6 +24,7 @@
         "LICENSE",
         "README.md"
     ],
+    "license": "MIT",
     "homepage": "https://github.com/lenconda/scroller-coaster#readme",
     "peerDependencies": {
         "react": ">= 16.8.0"
