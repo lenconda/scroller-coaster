@@ -495,26 +495,26 @@ export const ScrollerCoaster = React.forwardRef<HTMLDivElement, ScrollerCoasterP
 
                     if (innerRef.current instanceof HTMLElement && directions.length > 0) {
                         if (directions.includes('vertical')) {
-                            const newScrollTop = scrollTopRef.current + scrollSpeed;
+                            let newScrollTop = scrollTopRef.current + scrollSpeed;
 
-                            if (
-                                newScrollTop >= 0 &&
-                                newScrollTop <= scrollHeightRef.current - shapeSizeRef.current?.height
-                            ) {
-                                scrollTopRef.current = newScrollTop;
-                                update();
+                            if (newScrollTop < 0) newScrollTop = 0;
+                            if (newScrollTop > scrollHeightRef.current - shapeSizeRef.current?.height) {
+                                newScrollTop = scrollHeightRef.current - shapeSizeRef.current?.height;
                             }
+
+                            scrollTopRef.current = newScrollTop;
+                            update();
                         }
                         if (directions.includes('horizontal')) {
-                            const newScrollLeft = scrollLeftRef.current + scrollSpeed;
+                            let newScrollLeft = scrollLeftRef.current + scrollSpeed;
 
-                            if (
-                                newScrollLeft >= 0 &&
-                                newScrollLeft <= scrollWidthRef.current - shapeSizeRef.current?.width
-                            ) {
-                                scrollLeftRef.current = newScrollLeft;
-                                update();
+                            if (newScrollLeft < 0) newScrollLeft = 0;
+                            if (newScrollLeft > scrollWidthRef.current - shapeSizeRef.current?.width) {
+                                newScrollLeft = scrollWidthRef.current - shapeSizeRef.current?.width;
                             }
+
+                            scrollLeftRef.current = newScrollLeft;
+                            update();
                         }
                     }
                 };
