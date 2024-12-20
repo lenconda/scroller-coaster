@@ -20,7 +20,9 @@
     },
     "files": [
         "demo",
-        "lib"
+        "lib",
+        "LICENSE",
+        "README.md"
     ],
     "homepage": "https://github.com/lenconda/scroller-coaster#readme",
     "peerDependencies": {
