@@ -2,7 +2,7 @@
 
 A customizable, flexible, and elegant scrollbar component for React.js and Next.js.
 
-[Live Demo](https://unpkg.com/scroller-coaste/demo/index.html)
+[Live Demo](https://unpkg.com/scroller-coaster/demo/index.html)
 
 ## Features
 
