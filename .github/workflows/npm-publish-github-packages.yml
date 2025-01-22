@@ -27,9 +27,6 @@ jobs:
         run: ls -al
 
       - name: Install dependencies
-        env:
-          GITHUB_TOKEN: ${{ secrets.NORANTEC_PKGS_GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NORANTEC_PKGS_GITHUB_TOKEN }}
         run: npm i --legacy-peer-deps=true
 
       - name: Run build
@@ -84,17 +81,14 @@ jobs:
           ls -al ./lib
           ls -al ./demo
 
-      - name: Install dependencies
-        env:
-          GITHUB_TOKEN: ${{ secrets.NORANTEC_PKGS_GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NORANTEC_PKGS_GITHUB_TOKEN }}
-        run: npm i --legacy-peer-deps=true
+      - name: Install NTTC
+        run: npm i @norantec/nttc -g --@norantec:registry=https://npm.pkg.github.com --//npm.pkg.github.com/:_authToken=${{ secrets.NORANTEC_PKGS_GITHUB_TOKEN }}
 
       - name: Release with semantic-release
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           BRANCH_NAME: ${{ github.ref_name }}
-        run: npx nttc bump npm --type $BRANCH_NAME --token $NPM_TOKEN
+        run: nttc bump npm --type $BRANCH_NAME --token $NPM_TOKEN
 
       - name: Publish package
         env:
